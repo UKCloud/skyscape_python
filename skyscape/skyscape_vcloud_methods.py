@@ -1,14 +1,16 @@
 __author__ = 'prossi'
-from lxml import objectify
-
-from skyscape.skyscape_lookups import Lookups
+import skyscape
 
 
 class Vcloud_Method():
     def __init__(self, linkref, connection):
         self.rel = linkref.attrib['rel']
         self.href = linkref.attrib['href']
-        lookup = Lookups()
+        if linkref.get('type') is not None:
+            self.type = linkref.attrib['type']
+        else:
+            self.type = ""
+        lookup = skyscape.skyscape_lookups.Lookups()
         relinfo = lookup.get_relationship(self.rel)
         if relinfo.__len__() == 0:
             self.description = ""
@@ -20,14 +22,20 @@ class Vcloud_Method():
 
     def invoke(self, data=''):
         res = ""
+        if self.type != "":
+            contenttypeheader = {"Content-Type": self.type}
+        else:
+            contenttypeheader = {}
+
         if self.method == 'POST':
-            res = objectify.fromstring(self.connection.post_request(self.href, data))
+            res = self.connection.post_request(self.href, data, contenttypeheader)
         elif self.method == 'GET':
-            res = objectify.fromstring(self.connection.get_request(self.href))
+            res = self.connection.get_request(self.href)
         elif self.method == 'PUT':
-            res = objectify.fromstring(self.connection.put_request(self.href, data))
+            res = self.connection.put_request(self.href, data, contenttypeheader)
         elif self.method == 'DELETE':
-            res = objectify.fromstring(self.connection.delete_request(self.href))
+            res = self.connection.delete_request(self.href)
         else:
             print "There is no VERB for this request"
+
         return res

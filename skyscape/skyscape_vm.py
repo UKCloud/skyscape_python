@@ -1,8 +1,5 @@
 __author__ = 'prossi'
-from lxml import objectify
-
-from skyscape_orgvdc import ORGVDC
-from skyscape.skyscape_vcloud_methods import Vcloud_Method
+import skyscape
 
 
 class lazy_property(object):
@@ -19,24 +16,24 @@ class lazy_property(object):
 
 
 class VM():
-    def __init__(self, vmobject, connection):
+    def __init__(self, vmobject=None, connection=None):
         self.__dict__ = dict(vmobject.attrib)
         self.extensiondata = dict(vmobject.attrib)
         self.connection = connection
 
     @lazy_property
     def vdc_data(self):
-        return ORGVDC(objectify.fromstring(self.connection.get_link(self.vdc)))
+        return skyscape.skyscape_orgvdc.ORGVDC(skyscape.objectify.fromstring(self.connection.get_link(self.vdc)))
 
     @lazy_property
     def vm_data(self):
-        return objectify.fromstring(self.connection.get_link(self.href))
+        return skyscape.objectify.fromstring(self.connection.get_link(self.href))
 
     @lazy_property
     def links(self):
         holder = []
         for link in self.vm_data.Link:
-            new_method = Vcloud_Method(link, self.connection)
+            new_method = skyscape.skyscape_vcloud_methods.Vcloud_Method(link, self.connection)
             if new_method.description != "":
                 holder.append(new_method)
         return holder
@@ -51,4 +48,6 @@ class VM():
     def refresh(self):
         self.__init__(self.vm_data, self.connection)
 
+    def delete(self):
+        return self.connection.delete_request(self.href)
 

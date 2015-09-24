@@ -1,7 +1,5 @@
 __author__ = 'prossi'
-from lxml import objectify
-
-from skyscape.skyscape_vcloud_methods import Vcloud_Method
+import skyscape
 
 
 class lazy_property(object):
@@ -24,7 +22,7 @@ class VSE:
 
     @lazy_property
     def vse_data(self):
-        return objectify.fromstring(self.connection.get_link(self.href))
+        return skyscape.objectify.fromstring(self.connection.get_link(self.href))
 
     @lazy_property
     def firewall(self):
@@ -71,7 +69,7 @@ class VSE:
     def links(self):
         holder = []
         for link in self.vse_data.Link:
-            new_method = Vcloud_Method(link, self.connection)
+            new_method = skyscape.skyscape_vcloud_method.Vcloud_Method(link, self.connection)
             if new_method.description != "":
                 holder.append(new_method)
         return holder

@@ -1,11 +1,30 @@
 __author__ = 'prossi'
 
 import base64
-
 import requests
-from lxml import objectify
-
-from skyscape.skyscape_vcloud_types import Vcloud_Types
+from lxml import objectify, etree
+import skyscape_vapp
+import skyscape_vcloud_methods
+import skyscape_error
+import skyscape_task
+import skyscape_orgvdc
+import skyscape_vappnetwork
+import skyscape_vapptemplate
+import skyscape_vcloud_types
+import skyscape_vm
+import skyscape_vmdiskrelation
+import skyscape_apidefinition
+import skyscape_catalog
+import skyscape_catalogitem
+import skyscape_disk
+import skyscape_event
+import skyscape_vse
+import skyscape_lookups
+import skyscape_group
+import skyscape_media
+import skyscape_storageprofile
+import skyscape_service
+import skyscape_user
 
 
 class Connection:
@@ -52,32 +71,53 @@ class Connection:
 
     def get_request(self, url):
         res = requests.get(url, headers=self.apiheaders, verify=True)
-        return res.content
+        return self.parse_object(objectify.fromstring(res.content))
 
-    def post_request(self, url, data):
-        res = requests.post(url, data, headers=self.apiheaders, verify=True)
-        return res.content
+    def post_request(self, url, data, additionalheaders={}):
+        thisrequestheaders = self.apiheaders
+        for header in additionalheaders:
+            thisrequestheaders[header] = additionalheaders[header]
+
+        res = requests.post(url, data, headers=thisrequestheaders, verify=True)
+        return self.parse_object(objectify.fromstring(res.content))
 
     def put_request(self, url, data):
         res = requests.put(url, data, headers=self.apiheaders, verify=True)
-        return res.content
+        return self.parse_object(objectify.fromstring(res.content))
 
     def delete_request(self, url):
         res = requests.delete(url, headers=self.apiheaders, verify=True)
-        return res.content
+        return self.parse_object(objectify.fromstring(res.content))
 
-    def search_cloud(self, cloudtype, name='', id='', printoutput=False):
+    def parse_object(self, obj):
+        if hasattr(obj, 'tag'):
+            if 'Task' in obj.tag:
+                return skyscape_task.TASK(obj, self)
+            if 'Error' in obj.tag:
+                return skyscape_error.VCLOUDERROR(obj, self)
+            if 'VApp' in obj.tag:
+                return skyscape_vapp.VAPP(obj, self)
+        return obj
+
+    def search_cloud(self, cloudtype, name='', id='', filters='', printoutput=False):
         holder = []
         if name:
-            res = objectify.fromstring(self.get_computerequest("query?type={0}&filter=(name==*{1}*)".format(cloudtype, name)))
-            recordholder = Vcloud_Types(res, self)
+            if filters == '':
+                res = objectify.fromstring(self.get_computerequest("query?type={0}&filter=(name==*{1}*)".format(cloudtype, name)))
+            else:
+                res = objectify.fromstring(self.get_computerequest("query?type={0}&filter=(name==*{1}*&{2})".format(cloudtype, name, filters)))
+
+            recordholder = skyscape_vcloud_types.Vcloud_Types(res, self)
             for record in recordholder.data:
                 holder.append(recordholder.get_object(record))
                 if printoutput:
                     self.print_list(record.attrib)
         elif id:
-            res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page=1&filter=(id=={1})".format(cloudtype, id)))
-            recordholder = Vcloud_Types(res, self)
+            if filters == "":
+                res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page=1&filter=(id=={1})".format(cloudtype, id)))
+            else:
+                res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page=1&filter=(id=={1}&{2})".format(cloudtype, id, filters)))
+            recordholder = skyscape_vcloud_types.Vcloud_Types(res, self)
             for record in recordholder.data:
                 holder.append(recordholder.get_object(record))
                 if printoutput:
@@ -85,8 +125,11 @@ class Connection:
         else:
             pagenumber = 1
             totalobjects = 0
-            res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page=1".format(cloudtype)))
-            recordholder = Vcloud_Types(res, self)
+            if filters == '':
+                res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page=1".format(cloudtype)))
+            else:
+                res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page=1&filter=({1})".format(cloudtype, filters)))
+            recordholder = skyscape_vcloud_types.Vcloud_Types(res, self)
             totalobjects += recordholder.count
             availableobjects = int(res.get('total'))
             for record in recordholder.data:
@@ -95,8 +138,11 @@ class Connection:
                     self.print_list(record.attrib)
             while totalobjects < availableobjects:
                 pagenumber += 1
-                res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page={1}".format(cloudtype, pagenumber)))
-                recordholder = Vcloud_Types(res, self)
+                if filters == '':
+                    res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page={1}".format(cloudtype, pagenumber)))
+                else:
+                    res = objectify.fromstring(self.get_computerequest("query?type={0}&pageSize=100&Page={1}&filter=({2})".format(cloudtype, pagenumber, filters)))
+                recordholder = skyscape_vcloud_types.Vcloud_Types(res, self)
                 totalobjects += recordholder.count
                 for record in recordholder.data:
                     holder.append(recordholder.get_object(record))
@@ -104,15 +150,26 @@ class Connection:
                         self.print_list(recordholder.attrib)
         return holder
 
-    def get_edgegateway(self, name='', id='', printoutput=False):
-        res = self.search_cloud(cloudtype='edgeGateway', name=name, id=id, printoutput=printoutput)
+    def get_edgegateway(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='edgeGateway', name=name, id=id, filters=filters, printoutput=printoutput)
         return res
 
-    def get_vm(self,name='',id='',printoutput=False):
-        res = self.search_cloud(cloudtype='vm', name=name, id=id, printoutput=printoutput)
+    def get_vm(self,name='', id='', filters='',printoutput=False):
+        res = self.search_cloud(cloudtype='vm', name=name, id=id, filters=filters, printoutput=printoutput)
         return res
 
+    def get_vapp(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='vApp', name=name, id=id, filters=filters, printoutput=printoutput)
+        return res
 
+    def get_orgvdc(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='orgVdc', name=name, id=id, filters=filters, printoutput=printoutput)
+        return res
 
+    def get_catalog(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='catalog', name=name, id=id, filters=filters, printoutput=printoutput)
+        return res
 
-
+    def get_catalogitem(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='catalogItem', name=name, id=id, filters=filters, printoutput=printoutput)
+        return res

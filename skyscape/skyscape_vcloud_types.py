@@ -1,9 +1,6 @@
 __author__ = 'prossi'
 
-from skyscape.skyscape_vm import VM
-from skyscape.skyscape_vse import VSE
-from skyscape.skyscape_orgvdc import ORGVDC
-from skyscape.skyscape_vapp import VAPP
+import skyscape
 
 
 class Vcloud_Types:
@@ -25,15 +22,28 @@ class Vcloud_Types:
             self.cloudtype = 'ORGVDC'
             self.data = data.OrgVdcRecord
             self.count = data.OrgVdcRecord.__len__()
-
-
+        elif hasattr(data, 'CatalogRecord'):
+            self.cloudtype = 'CATALOG'
+            self.data = data.CatalogRecord
+            self.count = data.CatalogRecord.__len__()
+        elif hasattr(data, 'CatalogItemRecord'):
+            self.cloudtype = 'CATALOGITEM'
+            self.data = data.CatalogItemRecord
+            self.count = data.CatalogItemRecord.__len__()
+        else:
+            self.count = 0
+            self.data = []
 
     def get_object(self, record):
         if self.cloudtype == 'VM':
-            return VM(record, self.connection)
+            return skyscape.skyscape_vm.VM(record, self.connection)
         elif self.cloudtype == 'VSE':
-            return VSE(record, self.connection)
+            return skyscape.skyscape_vse.VSE(record, self.connection)
         elif self.cloudtype == 'VAPP':
-            return VAPP(record, self.connection)
+            return skyscape.skyscape_vapp.VAPP(record, self.connection)
         elif self.cloudtype == 'ORGVDC':
-            return ORGVDC(record, self.connection)
+            return skyscape.skyscape_orgvdc.ORGVDC(record, self.connection)
+        elif self.cloudtype == 'CATALOG':
+            return skyscape.skyscape_catalog.CATALOG(record, self.connection)
+        elif self.cloudtype == 'CATALOGITEM':
+            return skyscape.skyscape_catalogitem.CATALOGITEM(record, self.connection)

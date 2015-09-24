@@ -1,7 +1,6 @@
 __author__ = 'prossi'
 import skyscape
 
-
 class lazy_property(object):
     def __init__(self, fget):
         self.fget = fget
@@ -15,20 +14,19 @@ class lazy_property(object):
         return value
 
 
-class ORGVDC:
+class CATALOG:
     def __init__(self, obj, connection):
         self.__dict__ = dict(obj.attrib)
         self.connection = connection
-        self.rawxml = skyscape.etree.tostring(obj, pretty_print=True)
 
     @lazy_property
-    def orgvdc_data(self):
+    def catalog_data(self):
         return skyscape.objectify.fromstring(self.connection.get_link(self.href))
 
     @lazy_property
     def links(self):
         holder = []
-        for link in self.orgvdc_data.Link:
+        for link in self.catalog_data.Link:
             new_method = skyscape.skyscape_vcloud_methods.Vcloud_Method(link, self.connection)
             if new_method.description != "":
                 holder.append(new_method)
@@ -41,21 +39,13 @@ class ORGVDC:
             i += 1
             print outputstring
 
-    def compose_vapp(self, name, description):
-        composevapplink = ""
-        for link in self.links:
-            if 'composeVApp' in link.href:
-                composevapplink = link
+    @lazy_property
+    def catalog_items(self):
+        return self.connection.get_catalogitem(filters='catalog=={0}'.format(self.href))
 
-        if composevapplink != "":
-            composexml = """
-            <ComposeVAppParams xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" name="{0}">
-               <Description>{1}</Description>
-               <AllEULAsAccepted>true</AllEULAsAccepted>
-            </ComposeVAppParams>
-            """.format(name, description)
-            res = composevapplink.invoke(composexml)
-            return res
-        else:
-            print "could not find composeVApp method on this VDC"
-            return None
+    def list_catalog_items(self):
+        i = 0
+        for a in self.catalog_items:
+            outputstring = "ID: {0}: {3} - {1} - {2}".format(i, a.name, a.href, a.entityType)
+            i += 1
+            print outputstring
