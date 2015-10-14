@@ -6,3 +6,5 @@ class CATALOGITEM:
         self.__dict__ = dict(obj.attrib)
         self.connection = connection
 
+    def get_vms(self):
+        return self.connection.get_vapptemplate(self.entity)

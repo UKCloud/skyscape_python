@@ -30,7 +30,16 @@ class Vcloud_Types:
             self.cloudtype = 'CATALOGITEM'
             self.data = data.CatalogItemRecord
             self.count = data.CatalogItemRecord.__len__()
+        elif hasattr(data, 'VAppTemplate'):
+            self.cloudtype = 'VAPPTEMPLATE'
+            self.data = data.VAppTemplate
+            self.count = data.VAppTemplate.__len__()
         else:
+            if hasattr(data, 'tag'):
+                if "VAppTemplate" in data.tag:
+                    self.cloudtype = "VAPPTEMPLATE"
+                    self.data = data
+                    self.count = 1
             self.count = 0
             self.data = []
 
@@ -47,3 +56,5 @@ class Vcloud_Types:
             return skyscape.skyscape_catalog.CATALOG(record, self.connection)
         elif self.cloudtype == 'CATALOGITEM':
             return skyscape.skyscape_catalogitem.CATALOGITEM(record, self.connection)
+        elif self.cloudtype == 'VAPPTEMPLATE':
+            return skyscape.skyscape_vapptemplate.VAPPTEMPLATE(record, self.connection)

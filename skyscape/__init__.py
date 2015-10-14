@@ -173,3 +173,10 @@ class Connection:
     def get_catalogitem(self, name='', id='', filters='', printoutput=False):
         res = self.search_cloud(cloudtype='catalogItem', name=name, id=id, filters=filters, printoutput=printoutput)
         return res
+
+    def get_vapptemplate(self, href):
+        res = objectify.fromstring(self.get_link(href))
+        holder = []
+        recordholder = skyscape_vcloud_types.Vcloud_Types(res, self)
+        holder.append(recordholder.get_object(res))
+        return holder
