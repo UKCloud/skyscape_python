@@ -95,8 +95,10 @@ class Connection:
                 return skyscape_task.TASK(obj, self)
             if 'Error' in obj.tag:
                 return skyscape_error.VCLOUDERROR(obj, self)
-            if 'VApp' in obj.tag:
+            if 'VAppRecord' in obj.tag:
                 return skyscape_vapp.VAPP(obj, self)
+            if 'VAppTemplate' in obj.tag:
+                return skyscape_vapptemplate.VAPPTEMPLATE(obj, self)
         return obj
 
     def search_cloud(self, cloudtype, name='', id='', filters='', printoutput=False):
