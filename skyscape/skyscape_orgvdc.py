@@ -34,6 +34,39 @@ class ORGVDC:
                 holder.append(new_method)
         return holder
 
+    def list_vapps(self):
+        i = 0
+        for a in self.vapps:
+            outputstring = "ID {0}: Name: {1} - Status: {2} - Number of VMs: {3}".format(i, a.name, a.status, a.numberOfVMs)
+            i += 1
+            print outputstring
+
+    def list_orgnetworks(self):
+        i = 0
+        for a in self.orgnetworks:
+            outputstring = "ID {0}: Name: {1} - Gateway: {2}".format(i, a.name, a.gateway)
+            i += 1
+            print outputstring
+
+    def list_storage_profiles(self):
+        i = 0
+        for a in self.storage_profiles:
+            outputstring = "ID {0}: Name: {1} - Default: {4} - Storage Limit: {2} - Storage Used: {3}".format(i, a.name, a.storageLimitMB, a.storageUsedMB, a.isDefaultStorageProfile)
+            i += 1
+            print outputstring
+
+    @lazy_property
+    def storage_profiles(self):
+        return self.connection.get_storageprofile(filters='vdc=={0}'.format(self.href))
+
+    @lazy_property
+    def vapps(self):
+        return self.connection.get_vapp(filters='vdc=={0}'.format(self.href))
+
+    @lazy_property
+    def orgnetworks(self):
+        return self.connection.get_orgnetwork()
+
     def list_links(self):
         i = 0
         for a in self.links:

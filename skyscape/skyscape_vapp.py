@@ -49,8 +49,19 @@ class VAPP:
         return self.connection.delete_request(self.href)
 
     @lazy_property
+    def storage_profiles(self):
+        return self.connection.get_storageprofile(filters='vdc=={0}'.format(self.vdc))
+
+    @lazy_property
     def vms(self):
         return self.connection.get_vm(filters='container=={0}'.format(self.href))
+
+    def list_storage_profiles(self):
+        i = 0
+        for a in self.storage_profiles:
+            outputstring = "ID {0}: Name: {1} - Default: {4} - Storage Limit: {2} - Storage Used: {3}".format(i, a.name, a.storageLimitMB, a.storageUsedMB, a.isDefaultStorageProfile)
+            i += 1
+            print outputstring
 
     def list_vms(self):
         i = 0
@@ -59,7 +70,43 @@ class VAPP:
             i += 1
             print outputstring
 
-    def add_vm(self, catalogitemhref, name):
+    def add_network(self, networkname, parenthref, fencemode):
+        recomposexml = """
+        <RecomposeVAppParams
+        xmlns="http://www.vmware.com/vcloud/v1.5"
+        xmlns:ns2="http://schemas.dmtf.org/ovf/envelope/1"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+        xmlns:environment_1="http://schemas.dmtf.org/ovf/environment/1">
+            <Description> "api deployed vm" </Description>
+            <InstantiationParams>
+                <NetworkConfigSection>
+                    <ovf:Info>Configuration parameters for logical networks</ovf:Info>
+                    <NetworkConfig networkName="{0}">
+                        <Configuration>
+                            <ParentNetwork href="{1}" />
+                            <FenceMode>{2}</FenceMode>
+                        </Configuration>
+                    </NetworkConfig>
+                </NetworkConfigSection>
+            </InstantiationParams>
+        </RecomposeVAppParams>
+        """.format(networkname, parenthref, fencemode)
+
+        #print recomposexml
+        recomposevapplink = ""
+        for link in self.links:
+            if 'recomposeVApp' in link.href:
+                recomposevapplink = link
+
+        if recomposevapplink != "":
+            res = recomposevapplink.invoke(recomposexml)
+            return res
+        else:
+            print "could not find recomposeVApp method on this VAPP"
+            return None
+
+    def add_vm(self, catalogitemhref, name, networkhref):
         recomposexml = """
         <RecomposeVAppParams
           xmlns="http://www.vmware.com/vcloud/v1.5"
@@ -68,13 +115,92 @@ class VAPP:
           xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
           xmlns:environment_1="http://schemas.dmtf.org/ovf/environment/1">
           <Description> "api deployed vm" </Description>
-              <SourcedItem sourceDelete="false">
-                  <Source href="{0}" name="{1}"/>
-              </SourcedItem>
-          <AllEULAsAccepted>true</AllEULAsAccepted>
-        </RecomposeVAppParams>
+          <SourcedItem sourceDelete="false">
+            <Source type="application/vnd.vmware.vcloud.vm+xml" name="{1}" href="{0}"/>
         """.format(catalogitemhref, name)
 
+        if networkhref is not None:
+            recomposexml += """
+                <InstantiationParams>
+                    <NetworkConnectionSection
+                    xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+                type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
+                href="{0}/networkConnectionSection/"
+                ovf:required="false">
+                <ovf:Info />
+                        <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
+                        <NetworkConnection
+                            network="{1}">
+                            <NetworkConnectionIndex>0</NetworkConnectionIndex>
+                            <IsConnected>true</IsConnected>
+                            <IpAddressAllocationMode>DHCP</IpAddressAllocationMode>
+                        </NetworkConnection>
+                    </NetworkConnectionSection>
+                </InstantiationParams>
+                """.format(catalogitemhref, networkhref)
+
+        recomposexml += """
+          </SourcedItem>
+        </RecomposeVAppParams>
+        """.format(catalogitemhref, name)
+        #print recomposexml
+        recomposevapplink = ""
+        for link in self.links:
+            if 'recomposeVApp' in link.href:
+                recomposevapplink = link
+
+        if recomposevapplink != "":
+            res = recomposevapplink.invoke(recomposexml)
+            return res
+        else:
+            print "could not find recomposeVApp method on this VAPP"
+            return None
+
+    def add_vms(self, details):
+        recomposexml = """
+        <RecomposeVAppParams
+          xmlns="http://www.vmware.com/vcloud/v1.5"
+          xmlns:ns2="http://schemas.dmtf.org/ovf/envelope/1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+          xmlns:environment_1="http://schemas.dmtf.org/ovf/environment/1">
+          <Description> "api deployed vm" </Description>
+        """
+
+        for item in details:
+            recomposexml += """
+            <SourcedItem sourceDelete="false">
+                <Source type="application/vnd.vmware.vcloud.vm+xml" name="{0}" href="{1}"/>
+            """.format(item[1], item[0])
+
+            if item.__len__() == 3:
+                recomposexml += """
+                <InstantiationParams>
+                    <NetworkConnectionSection
+                    xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+                type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
+                href="{0}/networkConnectionSection/"
+                ovf:required="false">
+                <ovf:Info />
+                        <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
+                        <NetworkConnection
+                            network="{1}">
+                            <NetworkConnectionIndex>0</NetworkConnectionIndex>
+                            <IsConnected>true</IsConnected>
+                            <IpAddressAllocationMode>DHCP</IpAddressAllocationMode>
+                        </NetworkConnection>
+                    </NetworkConnectionSection>
+                </InstantiationParams>
+                """.format(item[0], item[2])
+
+            recomposexml += """
+            </SourcedItem>
+            """
+
+        recomposexml += """
+        </RecomposeVAppParams>
+        """
+        #print recomposexml
         recomposevapplink = ""
         for link in self.links:
             if 'recomposeVApp' in link.href:

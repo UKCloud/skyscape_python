@@ -34,6 +34,14 @@ class Vcloud_Types:
             self.cloudtype = 'VAPPTEMPLATE'
             self.data = data.VAppTemplate
             self.count = data.VAppTemplate.__len__()
+        elif hasattr(data, 'OrgVdcStorageProfileRecord'):
+            self.cloudtype = 'STORAGEPROFILE'
+            self.data = data.OrgVdcStorageProfileRecord
+            self.count = data.OrgVdcStorageProfileRecord.__len__()
+        elif hasattr(data, 'OrgNetworkRecord'):
+            self.cloudtype = 'ORGNETWORK'
+            self.data = data.OrgNetworkRecord
+            self.count = data.OrgNetworkRecord.__len__()
         else:
             if hasattr(data, 'tag'):
                 if "VAppTemplate" in data.tag:
@@ -58,3 +66,7 @@ class Vcloud_Types:
             return skyscape.skyscape_catalogitem.CATALOGITEM(record, self.connection)
         elif self.cloudtype == 'VAPPTEMPLATE':
             return skyscape.skyscape_vapptemplate.VAPPTEMPLATE(record, self.connection)
+        elif self.cloudtype == 'STORAGEPROFILE':
+            return skyscape.skyscape_storageprofile.STORAGEPROFILE(record, self.connection)
+        elif self.cloudtype == 'ORGNETWORK':
+            return skyscape.skyscape_orgnetwork.ORGNETWORK(record, self.connection)

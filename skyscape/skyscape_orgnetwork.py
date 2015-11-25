@@ -1,4 +1,5 @@
 __author__ = 'prossi'
+import skyscape
 
 
 class lazy_property(object):
@@ -14,11 +15,8 @@ class lazy_property(object):
         return value
 
 
-class CATALOGITEM:
+class ORGNETWORK:
     def __init__(self, obj, connection):
         self.__dict__ = dict(obj.attrib)
         self.connection = connection
-
-    @lazy_property
-    def vapp(self):
-        return self.connection.get_vapptemplate(self.entity)
+        self.rawxml = skyscape.etree.tostring(obj, pretty_print=True)

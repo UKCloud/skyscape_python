@@ -25,6 +25,8 @@ import skyscape_media
 import skyscape_storageprofile
 import skyscape_service
 import skyscape_user
+import skyscape_vmtemplate
+import skyscape_orgnetwork
 
 
 class Connection:
@@ -175,6 +177,15 @@ class Connection:
     def get_catalogitem(self, name='', id='', filters='', printoutput=False):
         res = self.search_cloud(cloudtype='catalogItem', name=name, id=id, filters=filters, printoutput=printoutput)
         return res
+
+    def get_storageprofile(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='orgVdcStorageProfile', name=name, id=id, filters=filters, printoutput=printoutput)
+        return res
+
+    def get_orgnetwork(self, name='', id='', filters='', printoutput=False):
+        res = self.search_cloud(cloudtype='orgNetwork', name=name, id=id, filters=filters, printoutput=printoutput)
+        return res
+
 
     def get_vapptemplate(self, href):
         res = objectify.fromstring(self.get_link(href))

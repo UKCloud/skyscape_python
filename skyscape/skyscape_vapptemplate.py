@@ -26,7 +26,13 @@ class VAPPTEMPLATE:
     def vms(self):
         holder = []
         for vm in self.obj.Children.Vm:
-            holder.append(skyscape.skyscape_vm.VM(vm))
+            holder.append(skyscape.skyscape_vmtemplate.VMTEMPLATE(vm))
         return holder
 
+    def list_vms(self):
+        i = 0
+        for a in self.vms:
+            outputstring = "ID: {0} - Name: {1} - Status: {2}".format(i, a.name, a.status)
+            i += 1
+            print outputstring
 

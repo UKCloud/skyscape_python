@@ -26,7 +26,7 @@ class Vcloud_Method():
             contenttypeheader = {"Content-Type": self.type}
         else:
             contenttypeheader = {}
-
+        #print self.type
         if self.method == 'POST':
             res = self.connection.post_request(self.href, data, contenttypeheader)
         elif self.method == 'GET':
