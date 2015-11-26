@@ -1,10 +1,10 @@
 deployment_vdc = 'Skyscape (IL0-PROD-BASIC)'
 deployment_catalog = 'Skyscape Catalog'
 deployment_catalog_item = 'BLANK VM'
-deployment_new_vapp_name = 'A TEST VAPP'
+
 deployment_new_vapp_description = 'A TEST VAPP DESCRIPTION'
 deployment_new_vm_base_name = 'A TEST VM'
-deployment_num_vms_to_create = 5
+
 deployment_network_name = 'TEST NETWORK'
 deployment_network_parent = 'VDC Isolated'
 
@@ -13,9 +13,19 @@ import skyscape
 import time
 import getpass
 
+
+def check_for_recompose(vapp):
+    found = False
+    for link in vapp.links:
+        if 'recomposeVApp' in link.href:
+            found = True
+    return found
+
 skyscape_api_user_id = raw_input("Please enter your skyscape user id: ")
 skyscape_api_user_password = getpass.getpass("Please enter your skyscape password: ")
 skyscape_api_user_org = raw_input("Please enter your skyscape ORG id: ")
+deployment_new_vapp_name = raw_input("Please provide a name for your demo VAPP: ")
+deployment_num_vms_to_create = int(raw_input("How many VMs would you like to deploy?: "))
 
 starttime = time.time()
 
@@ -67,11 +77,6 @@ for item in obj_deployment_catalog.catalog_items:
 print "Creating a new empty VAPP"
 before = time.time()
 newvapp = obj_deployment_vdc.compose_vapp(deployment_new_vapp_name, deployment_new_vapp_description)
-after = time.time()
-timediff = int(after-before)
-print "Waiting for it to complete"
-print "Creating empty VAPP took {0} seconds".format(timediff)
-time.sleep(10)
 
 if 'vapps' in obj_deployment_vdc.__dict__:
     del obj_deployment_vdc.vapps
@@ -82,6 +87,21 @@ print "Finding our new VAPP"
 for vapp in obj_deployment_vdc.vapps:
     if vapp.name == deployment_new_vapp_name:
         obj_deployment_vapp = vapp
+
+while not check_for_recompose(obj_deployment_vapp):
+    if 'vapps' in obj_deployment_vdc.__dict__:
+        del obj_deployment_vdc.vapps
+
+    obj_deployment_vapp = None
+
+    print "Finding our new VAPP\r"
+    for vapp in obj_deployment_vdc.vapps:
+        if vapp.name == deployment_new_vapp_name:
+            obj_deployment_vapp = vapp
+
+after = time.time()
+timediff = int(after-before)
+print "Creating empty VAPP took {0} seconds".format(timediff)
 
 print "Finding parent ORG Network {0}".format(deployment_network_parent)
 for orgnetwork in vdc.orgnetworks:
@@ -98,6 +118,8 @@ while not res.status == 'success':
 after = time.time()
 timediff = int(after-before)
 print "Creating new VAPP network took {0} seconds".format(timediff)
+
+a = raw_input("VAPP and Network now created... please check.")
 
 print "Creating an array of {0} VM's config...".format(deployment_num_vms_to_create)
 vm_holder = []
@@ -119,6 +141,8 @@ after = time.time()
 timediff = int(after-before)
 print "Creating a VAPP with {0} VM's took {1} seconds".format(deployment_num_vms_to_create, timediff)
 
+a = raw_input("VMs have now been added to the VAPP, please check...")
+
 #Adding an extra random VM that doesn't have a network connection
 print "Adding an extra VM to the VAPP with no network connection..."
 before = time.time()
@@ -133,6 +157,8 @@ after = time.time()
 timediff = int(after-before)
 print "Creating an additional VM with no network connection took {0} seconds".format(timediff)
 
+a = raw_input("An extra VM with no network connection has now been added to the VAPP, please check")
+
 #Adding another VM that has a network connection
 print "Adding an extra VM to the VAPP with a network connection..."
 before = time.time()
@@ -146,6 +172,8 @@ while not res.status == 'success':
 after = time.time()
 timediff = int(after-before)
 print "Creating an additional VM with a network connection took {0} seconds".format(timediff)
+
+a = raw_input("An extra VM with a network connection has now been added to the VAPP, please check")
 
 after = time.time()
 timediff = int(after-starttime)
